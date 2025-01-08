@@ -4,6 +4,7 @@ from sentence_transformers import CrossEncoder
 import argparse
 import logging
 from pathlib import Path
+import torch.nn as nn
 
 
 def main():
@@ -19,6 +20,7 @@ def main():
     if model_name == "cross-encoder/msmarco-MiniLM-L6-en-de-v1":
         max_length = 512
     cross_encoder = CrossEncoder(model_name, max_length=max_length)
+    cross_encoder.model = nn.DataParallel(cross_encoder.model)
     tasks = mteb.get_tasks(tasks=tasks_names)
     print(tasks)
     evaluation = MTEB(
@@ -48,6 +50,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # uses other mteb version!!!
     main()
     # https://github.com/embeddings-benchmark/mteb?tab=readme-ov-file#using-a-cross-encoder-for-reranking

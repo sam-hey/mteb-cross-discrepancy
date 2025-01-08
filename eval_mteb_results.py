@@ -1,6 +1,7 @@
 import json
 from sentence_transformers import CrossEncoder
-
+import numpy as np
+import torch.nn as nn
 
 # Load data from files
 def load_json_file(file_path):
@@ -10,8 +11,13 @@ def load_json_file(file_path):
 
 # Save data to a JSON file
 def save_json_file(data, file_path):
+    def convert_float32(obj):
+        if isinstance(obj, np.float32):
+            return float(obj)
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+        json.dump(data, f, indent=4, ensure_ascii=False, default=convert_float32)
 
 
 # Main processing function
@@ -28,8 +34,9 @@ def process_files(
 
     # Initialize cross-encoder model
     model = CrossEncoder("cross-encoder/msmarco-MiniLM-L6-en-de-v1", max_length=512)
-
+    model.model = nn.DataParallel(model.model)
     processed_results = {}
+    output_results = {}
 
     for query_id, relevant in relevant_docs.items():
         query_text = queries.get(query_id, "")
@@ -39,7 +46,7 @@ def process_files(
 
         # Prepare pairs for scoring
         pairs = [(query_text, corpus[doc_id]) for doc_id in corpus]
-        scores = model.predict(pairs, show_progress_bar=True)
+        scores = model.predict(pairs, batch_size=600, show_progress_bar=True)
 
         # Collect results with scores
         scored_results = {doc_id: score for doc_id, score in zip(corpus, scores)}
@@ -97,6 +104,21 @@ def process_files(
             "missing_relevant_docs_in_top_x": missing_relevant_docs,
         }
 
+        cross_encoder_results = {
+            query_id: {
+                doc_id: scores["cross_encoder_score"]
+                for doc_id, scores in comparison_results.items()
+            }
+        }
+        processed_results[query_id]["cross_encoder_results"] = cross_encoder_results[
+            query_id
+        ]
+
+        output_results[query_id] = {
+            doc_id: scores["cross_encoder_score"]
+            for doc_id, scores in comparison_results.items()
+        }
+
     # Output the processed results
     for query_id, result in processed_results.items():
         print(f"Query ID: {query_id}")
@@ -115,7 +137,8 @@ def process_files(
             print(f"  Doc ID: {doc_id}")
         print()
     # Save the processed results
-    # save_json_file(processed_results, output_file)
+    save_json_file(output_results, output_file)
+    save_json_file(processed_results, output_file.replace(".json", "_processed.json"))
     print(f"Processed results saved to {output_file}")
 
 
