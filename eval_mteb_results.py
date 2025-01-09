@@ -3,6 +3,7 @@ from sentence_transformers import CrossEncoder
 import numpy as np
 import torch.nn as nn
 
+
 # Load data from files
 def load_json_file(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
@@ -38,18 +39,27 @@ def process_files(
     processed_results = {}
     output_results = {}
 
+
     for query_id, relevant in relevant_docs.items():
+        results_query = results.get(query_id, {})
+        
+
+
         query_text = queries.get(query_id, "")
         if not query_text:
-            print(f"Query ID {query_id} not found in queries.json.")
-            continue
+            raise Exception("Query ID {query_id} not found in queries.json.")
 
+        for doc_id in results_query: 
+            dock = corpus[doc_id]
+            dock
+        
+        tmp_corpus = {doc_with_score: corpus[doc_with_score] for doc_with_score in results_query}
         # Prepare pairs for scoring
-        pairs = [(query_text, corpus[doc_id]) for doc_id in corpus]
-        scores = model.predict(pairs, batch_size=600, show_progress_bar=True)
+        pairs = [(query_text, corpus[doc_with_score]) for doc_with_score in results_query]
+        scores = model.predict(pairs, batch_size=600, show_progress_bar=True, convert_to_numpy=True)
 
         # Collect results with scores
-        scored_results = {doc_id: score for doc_id, score in zip(corpus, scores)}
+        scored_results = {doc_id: score for doc_id, score in zip(tmp_corpus, scores)}
 
         # Sort results by score in descending order
         sorted_results = dict(
@@ -66,8 +76,10 @@ def process_files(
         comparison_results = {}
         for doc_id in sorted_results:
             cross_encoder_score = sorted_results[doc_id]
-            original_score = results.get(query_id, {}).get(doc_id, None)
-
+            original_score = results.get(query_id, {}).get(doc_id)
+            if original_score is None:
+                raise Exception(
+                    f"Document ID {doc_id} not found in results for query ID {query_id}.")
             query_doc_list = results.get(query_id, {})
             query_doc_list_sorted = sorted(
                 query_doc_list.items(), key=lambda item: item[1], reverse=True
@@ -95,6 +107,7 @@ def process_files(
             if (
                 i < len(cross_encoder_sorted_docs)
                 and doc_id != cross_encoder_sorted_docs[i]
+                and doc_id in comparison_results
             ):
                 comparison_results[doc_id]["mismatch"] = True
 

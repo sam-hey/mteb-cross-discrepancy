@@ -26,25 +26,25 @@ def main():
     evaluation = MTEB(
         tasks=tasks,
     )
-    # bm25 = mteb.get_model("bm25s")
-    # path_output = Path(output_foler) / "bm25"
-    # path_output.mkdir(parents=True, exist_ok=True)
-    # evaluation.run(
-    #    bm25,
-    #    eval_splits=eval_splits,
-    #    output_folder=path_output.as_posix(),
-    #    save_predictions=True,
-    # )
-    # dataset = args.tasks[0]
+    bm25 = mteb.get_model("bm25s")
+    path_output = Path(output_foler) / "bm25"
+    path_output.mkdir(parents=True, exist_ok=True)
+    evaluation.run(
+        bm25,
+        eval_splits=eval_splits,
+        output_folder=path_output.as_posix(),
+        save_predictions=True,
+    )
+
     evaluation.run(
         cross_encoder,
         eval_splits=eval_splits,
         output_folder=output_foler.as_posix(),
         save_predictions=True,
-        top_k=1000000000,
-        # previous_results=(
-        #    output_foler / (tasks_names[0] + "_default_predictions.json")
-        # ).as_posix(),
+        top_k=100,
+        previous_results=(
+            path_output / (tasks_names[0] + "_default_predictions.json")
+        ).as_posix(),
     )
     print("Evaluation finished")
 

@@ -1,4 +1,0 @@
-output/GermanDPR_default_predictions_results_processed.json filter=lfs diff=lfs merge=lfs -text
-output/GermanDPR_default_predictions_results.json filter=lfs diff=lfs merge=lfs -text
-output/GermanDPR_default_predictions.json filter=lfs diff=lfs merge=lfs -text
-cli.out filter=lfs diff=lfs merge=lfs -text

@@ -472,6 +472,7 @@ class RetrievalEvaluator(Evaluator):
                 corpus,
                 queries,
                 self.top_k,
+                score_function="",
                 task_name=self.task_name,  # type: ignore
             )
         else:
